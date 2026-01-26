@@ -1,65 +1,84 @@
-import Image from "next/image";
+// Página de inicio: Muestra un Pokémon aleatorio.
+"use client";
 
+import { useState, useEffect } from "react";
+import { Container, Row, Col } from "react-bootstrap";
+import PokemonCard from "@/app/components/PokemonCard/PokemonCard";
+import { useLanguage } from "./idioma/GestorIdioma";
+
+interface PokemonData {
+  id: number;
+  name: string;
+  image: string;
+}
+
+// Función para obtener un Pokémon aleatorio desde la API
+const getRandomPokemon = async (): Promise<PokemonData | null> => {
+  try {
+    const randomId = Math.floor(Math.random() * 1010) + 1;
+    const response = await fetch(
+      `https://pokeapi.co/api/v2/pokemon/${randomId}`,
+    );
+    const data = await response.json();
+
+    return {
+      id: data.id,
+      name: data.name,
+      image:
+        data.sprites.other["official-artwork"].front_default ||
+        data.sprites.front_default,
+    };
+  } catch (error) {
+    return null;
+  }
+};
+
+// Componente principal de la página de inicio
 export default function Home() {
+  // Usamos el hook de idioma para textos traducibles
+  const { dict } = useLanguage();
+  // Estado para guardar el Pokémon obtenido
+  const [randomPokemon, setRandomPokemon] = useState<PokemonData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Efecto que carga un Pokémon al montar el componente
+  useEffect(() => {
+    console.log("Idioma actual:", dict);
+    console.log("Diccionario actual:", dict);
+    getRandomPokemon().then((pokemon) => {
+      setRandomPokemon(pokemon);
+      setLoading(false);
+    });
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    // Contenedor principal de la página
+    <Container className="my-5 d-flex flex-column align-items-center">
+      {/* Título principal de la página */}
+      <h1 className="text-center mb-4">{dict.title}</h1>
+
+      {/* Descripción de bienvenida traducida al idioma seleccionado */}
+      <h2 className="welcome-description">{dict.description}</h2>
+
+      {/* Contenedor para mostrar el card del Pokémon */}
+      <Row className="justify-content-center w-100">
+        <Col className="card-container">
+          {/* Mostrar un mensaje de carga mientras se obtiene el Pokémon */}
+          {loading ? (
+            <p>{dict.loading}</p>
+          ) : randomPokemon ? (
+            // Mostrar el card del Pokémon si se obtuvo correctamente
+            <PokemonCard
+              id={randomPokemon.id}
+              name={randomPokemon.name}
+              image={randomPokemon.image}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          ) : (
+            // Mostrar un mensaje de error si no se pudo obtener el Pokémon
+            <p>{dict.error}</p>
+          )}
+        </Col>
+      </Row>
+    </Container>
   );
 }
