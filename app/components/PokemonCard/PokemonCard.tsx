@@ -12,6 +12,7 @@ import {
 } from "react-bootstrap";
 // Importamos los estilos CSS específicos para esta tarjeta
 import styles from "./PokemonCard.module.css";
+import { useLanguage } from "../../idioma/GestorIdioma";
 
 // Interfaz que define las propiedades que recibe la tarjeta
 interface PokemonCardProps {
@@ -45,70 +46,89 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
   image,
   stats,
 }) => {
+  const { dict } = useLanguage();
   const [showModal, setShowModal] = useState(false);
   const [details, setDetails] = useState<PokemonDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState("/");
+  const [currentId, setCurrentId] = useState(id);
+  const [currentName, setCurrentName] = useState(name);
+  const [currentImage, setCurrentImage] = useState(image);
+
+  const updateUrl = (targetId: number) => {
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", `/pokemon/${targetId}`);
+    }
+  };
+
+  const fetchDetails = async (targetId: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${targetId}`);
+      const data = await res.json();
+
+      // Diccionario de tipos en español
+      const typeTranslations: { [key: string]: string } = {
+        normal: "Normal",
+        fighting: "Lucha",
+        flying: "Volador",
+        poison: "Veneno",
+        ground: "Tierra",
+        rock: "Roca",
+        bug: "Bicho",
+        ghost: "Fantasma",
+        steel: "Acero",
+        fire: "Fuego",
+        water: "Agua",
+        grass: "Planta",
+        electric: "Eléctrico",
+        psychic: "Psíquico",
+        ice: "Hielo",
+        dragon: "Dragón",
+        dark: "Siniestro",
+        fairy: "Hada",
+        unknown: "Desconocido",
+        shadow: "Sombra",
+      };
+
+      setCurrentId(data.id);
+      setCurrentName(data.name);
+      setCurrentImage(data.sprites.other["official-artwork"].front_default);
+      setDetails({
+        height: data.height / 10, // Convertir a metros
+        weight: data.weight / 10, // Convertir a kg
+        types: data.types.map(
+          (t: { type: { name: string } }) =>
+            typeTranslations[t.type.name] || t.type.name,
+        ),
+        stats: {
+          hp: data.stats[0].base_stat,
+          attack: data.stats[1].base_stat,
+          defense: data.stats[2].base_stat,
+          speed: data.stats[5].base_stat,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching details:", error);
+      setDetails(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Función para obtener los detalles al abrir el modal
   const handleDetailClick = async () => {
     // Guardamos la ruta actual antes de cambiarla
     if (typeof window !== "undefined") {
       setPreviousPath(window.location.pathname);
-      window.history.pushState(null, "", `/pokemon/${id}`);
+      updateUrl(id);
     }
 
     setShowModal(true);
-    if (!details) {
-      setLoading(true);
-      try {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-        const data = await res.json();
-
-        // Diccionario de tipos en español
-        const typeTranslations: { [key: string]: string } = {
-          normal: "Normal",
-          fighting: "Lucha",
-          flying: "Volador",
-          poison: "Veneno",
-          ground: "Tierra",
-          rock: "Roca",
-          bug: "Bicho",
-          ghost: "Fantasma",
-          steel: "Acero",
-          fire: "Fuego",
-          water: "Agua",
-          grass: "Planta",
-          electric: "Eléctrico",
-          psychic: "Psíquico",
-          ice: "Hielo",
-          dragon: "Dragón",
-          dark: "Siniestro",
-          fairy: "Hada",
-          unknown: "Desconocido",
-          shadow: "Sombra",
-        };
-
-        setDetails({
-          height: data.height / 10, // Convertir a metros
-          weight: data.weight / 10, // Convertir a kg
-          types: data.types.map(
-            (t: { type: { name: string } }) =>
-              typeTranslations[t.type.name] || t.type.name,
-          ),
-          stats: {
-            hp: data.stats[0].base_stat,
-            attack: data.stats[1].base_stat,
-            defense: data.stats[2].base_stat,
-            speed: data.stats[5].base_stat,
-          },
-        });
-      } catch (error) {
-        console.error("Error fetching details:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
+    setCurrentId(id);
+    setCurrentName(name);
+    setCurrentImage(image);
+    await fetchDetails(id);
   };
 
   const handleClose = () => {
@@ -117,6 +137,21 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
     if (typeof window !== "undefined") {
       window.history.pushState(null, "", previousPath);
     }
+  };
+
+  const handleNavigate = async (direction: "prev" | "next") => {
+    if (loading) return;
+    const targetId =
+      direction === "prev"
+        ? currentId <= 1
+          ? 1000
+          : currentId - 1
+        : currentId >= 1000
+          ? 1
+          : currentId + 1;
+
+    updateUrl(targetId);
+    await fetchDetails(targetId);
   };
 
   return (
@@ -148,7 +183,7 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
             className={`btn rounded-pill shadow-sm ${styles.buttonProfessional}`}
             onClick={handleDetailClick}
           >
-            Ver detalle
+            {dict.viewDetail || "Ver detalle"}
           </button>
         </BootstrapCard.Body>
       </BootstrapCard>
@@ -157,7 +192,8 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
       <Modal show={showModal} onHide={handleClose} centered size="lg">
         <Modal.Header closeButton className="border-0">
           <Modal.Title className="text-capitalize display-6 fw-bold text-primary w-100 text-center">
-            {name} <span className="text-muted fs-4">#{id}</span>
+            {currentName}{" "}
+            <span className="text-muted fs-4">#{currentId}</span>
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -173,7 +209,11 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
                 {/* Columna Izquierda: Imagen y Tipos */}
                 <div className="col-md-5 text-center mb-4 mb-md-0">
                   <div className="bg-light rounded-circle p-4 d-inline-block shadow-sm mb-3">
-                    <img src={image} alt={name} className={styles.modalImage} />
+                    <img
+                      src={currentImage}
+                      alt={currentName}
+                      className={styles.modalImage}
+                    />
                   </div>
                   <div className="d-flex justify-content-center gap-2 mb-3">
                     {details.types.map((type) => (
@@ -263,9 +303,23 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
           )}
         </Modal.Body>
         <Modal.Footer className="border-0">
-          <Button variant="secondary" onClick={handleClose}>
-            Cerrar
-          </Button>
+          <div className="w-100 d-flex flex-wrap justify-content-between gap-2">
+            <Button
+              variant="outline-primary"
+              onClick={() => handleNavigate("prev")}
+            >
+              {dict.previous || "Anterior"}
+            </Button>
+            <Button variant="secondary" onClick={handleClose}>
+              {dict.close || "Cerrar"}
+            </Button>
+            <Button
+              variant="outline-primary"
+              onClick={() => handleNavigate("next")}
+            >
+              {dict.next || "Siguiente"}
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
     </>

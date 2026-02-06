@@ -5,12 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "../../idioma/GestorIdioma";
 import styles from "./Header.module.css";
+import { useState } from "react";
 // Importamos el componente Loader (la pokebola CSS) para usarlo como logo
 import Loader from "../Loader/Loader";
 
 // Componente de Cabecera con barra de navegación y cambio de idioma
 function Header() {
   const { idioma, setIdioma, dict } = useLanguage();
+  const [showOtras, setShowOtras] = useState(false);
 
   return (
     <>
@@ -55,7 +57,7 @@ function Header() {
                 {dict.home || "Inicio"}
               </Nav.Link>
 
-              {/* Menú desplegable para elegir entre las 3 generaciones disponibles */}
+              {/* Menú desplegable para elegir entre las generaciones disponibles */}
               <NavDropdown
                 title={dict.generations || "Generaciones"}
                 id="generaciones-dropdown"
@@ -66,9 +68,37 @@ function Header() {
                 <NavDropdown.Item as={Link} href="/generacion/2">
                   2ª Generación
                 </NavDropdown.Item>
-                <NavDropdown.Item as={Link} href="/generacion/3">
-                  3ª Generación
+                <NavDropdown.Divider />
+                <NavDropdown.Item
+                  as="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowOtras(!showOtras);
+                  }}
+                  className="d-flex justify-content-between align-items-center"
+                >
+                  {dict.others || "Otras"}
+                  <span className="ms-2">{showOtras ? "▲" : "▼"}</span>
                 </NavDropdown.Item>
+                {showOtras && (
+                  <>
+                    <NavDropdown.Item
+                      as={Link}
+                      href="/tercera-temporada"
+                      className="ps-4"
+                    >
+                      {dict.thirdSeason || "Tercera temporada"}
+                    </NavDropdown.Item>
+                    <NavDropdown.Item
+                      as={Link}
+                      href="/generacion/4"
+                      className="ps-4"
+                    >
+                      {dict.fourthSeason || "Cuarta temporada"}
+                    </NavDropdown.Item>
+                  </>
+                )}
               </NavDropdown>
 
               <Nav.Link as={Link} href="/contacto">

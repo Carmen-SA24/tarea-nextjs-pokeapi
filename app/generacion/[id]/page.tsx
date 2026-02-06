@@ -12,6 +12,7 @@ const POKEMON_RANGES = {
   1: { min: 1, max: 151 },
   2: { min: 152, max: 251 },
   3: { min: 252, max: 386 },
+  4: { min: 387, max: 493 },
 };
 
 // Devuelve un ID aleatorio entre min y max
@@ -25,6 +26,8 @@ const fetchPokemonByGen = async (gen) => {
   const promises = [];
   for (let i = 0; i < 10; i++) {
     const id = getRandomPokemonId(range.min, range.max);
+    // si se quiere listar en orden usar 
+    //const id = range.min + i;
     const url = `https://pokeapi.co/api/v2/pokemon/${id}`;
     promises.push(
       fetch(url)
@@ -69,7 +72,7 @@ export default function GeneracionPage({ params }) {
 
   // Carga los Pokémon cuando cambia la generación
   useEffect(() => {
-    if (!generation || generation < 1 || generation > 3 || isNaN(generation)) {
+    if (!generation || generation < 1 || generation > 4 || isNaN(generation)) {
       if (generation !== null) {
         // Usar un setTimeout para evitar renderizados en cascada
         setTimeout(() => {
@@ -98,7 +101,7 @@ export default function GeneracionPage({ params }) {
   }, [generation]);
 
   // Si la generación no es válida, muestra mensaje
-  if (!generation || generation < 1 || generation > 3) {
+  if (!generation || generation < 1 || generation > 4) {
     return (
       <Container className="my-5 text-center">
         <Image
