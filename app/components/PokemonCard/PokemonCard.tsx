@@ -144,10 +144,10 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
     const targetId =
       direction === "prev"
         ? currentId <= 1
-          ? 1000
+          ? 1
           : currentId - 1
         : currentId >= 1000
-          ? 1
+          ? 1000
           : currentId + 1;
 
     updateUrl(targetId);
